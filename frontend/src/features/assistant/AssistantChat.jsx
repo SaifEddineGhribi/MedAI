@@ -79,7 +79,7 @@ export default function AssistantChat() {
       <div className="messages">
         {messages.map((m, i) => (
           <div key={i} className={`message ${m.role}`}>
-            <div className="bubble">
+            <div className="bubble bubble-appear">
               {m.role === 'assistant' ? (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
               ) : (
@@ -90,7 +90,13 @@ export default function AssistantChat() {
         ))}
         {loading && (
           <div className="message assistant">
-            <div className="bubble">…</div>
+            <div className="bubble bubble-appear">
+              <span className="typing" aria-label="Assistant is typing">
+                <span className="dot" />
+                <span className="dot" />
+                <span className="dot" />
+              </span>
+            </div>
           </div>
         )}
       </div>
