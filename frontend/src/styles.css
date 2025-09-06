@@ -48,6 +48,11 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-san
 .landing-composer button:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .chat { height: 100%; display: flex; flex-direction: column; }
+.chat-toolbar { display: flex; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--panel); }
+.toolbar-btn { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: #0b1220; color: var(--text); cursor: pointer; }
+.toolbar-btn:hover { background: #121a2b; }
+.toolbar-btn.danger { border-color: #7f1d1d; color: #fecaca; }
+.toolbar-btn.danger:hover { background: #1b1111; }
 .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .message { display: flex; }
 .message.user { justify-content: flex-end; }

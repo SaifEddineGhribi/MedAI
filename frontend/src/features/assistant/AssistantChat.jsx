@@ -4,13 +4,64 @@ import remarkGfm from 'remark-gfm'
 import { sendMessage } from '../../api'
 
 export default function AssistantChat() {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Bonjour Docteur X, comment puis-je vous aider ?' },
-  ])
+  const [messages, setMessages] = useState(() => {
+    try {
+      const raw = localStorage.getItem('medai.chat.v1')
+      if (raw) return JSON.parse(raw)
+    } catch {}
+    return [
+      { role: 'assistant', content: 'Bonjour Docteur X, comment puis-je vous aider ?' },
+    ]
+  })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [started, setStarted] = useState(false)
+  const [started, setStarted] = useState(() => {
+    return false
+  })
   const chatInputRef = useRef(null)
+
+  // Persist messages to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('medai.chat.v1', JSON.stringify(messages))
+    } catch {}
+  }, [messages])
+
+  // If we have more than the greeting, consider chat started
+  useEffect(() => {
+    if (messages.length > 1 && !started) setStarted(true)
+  }, [messages, started])
+
+  const exportMarkdown = () => {
+    const lines = []
+    lines.push(`# MedAI Chat Transcript`)
+    lines.push(`_Exported: ${new Date().toISOString()}_`)
+    lines.push('')
+    messages.forEach((m) => {
+      lines.push(m.role === 'user' ? '## You' : '## Assistant')
+      lines.push('')
+      lines.push(m.content || '')
+      lines.push('')
+    })
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `medai-chat-${Date.now()}.md`
+    document.body.appendChild(a)
+    a.click()
+    URL.revokeObjectURL(url)
+    a.remove()
+  }
+
+  const clearChat = () => {
+    const greeting = { role: 'assistant', content: 'Bonjour Docteur X, comment puis-je vous aider ?' }
+    setMessages([greeting])
+    setStarted(false)
+    setInput('')
+    try { localStorage.removeItem('medai.chat.v1') } catch {}
+    setTimeout(() => chatInputRef.current?.focus(), 0)
+  }
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -76,6 +127,14 @@ export default function AssistantChat() {
 
   return (
     <div className="chat fade-in">
+      <div className="chat-toolbar">
+        <button className="toolbar-btn" type="button" onClick={exportMarkdown} title="Exporter en Markdown">
+          Exporter
+        </button>
+        <button className="toolbar-btn danger" type="button" onClick={clearChat} title="Effacer la conversation">
+          Nouveau chat
+        </button>
+      </div>
       <div className="messages">
         {messages.map((m, i) => (
           <div key={i} className={`message ${m.role}`}>
