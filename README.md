@@ -29,7 +29,7 @@ A minimal full-stack scaffold for a medical platform with a left-hand features p
 - Start dev server: `npm run dev`
 - Open: `http://localhost:5173`
 
-The UI sends messages to the backend at `http://localhost:8000/api/chat` and will always display `hello` from the server. To change the backend base URL, set `VITE_API_BASE` in the frontend environment, e.g. `VITE_API_BASE=http://localhost:8000`.
+The UI sends messages to the backend at `http://localhost:8000/api/chat`. To change the backend base URL, set `VITE_API_BASE` in the frontend environment, e.g. `VITE_API_BASE=http://localhost:8000`.
 
 ## Run with Docker (hot reload)
 
@@ -41,8 +41,15 @@ Requires Docker and Docker Compose.
 
 Code changes in `frontend/` and `backend/` are bind-mounted and trigger hot reload automatically. If you change dependencies (`requirements.txt` or `package.json`), rebuild with `docker compose up --build`.
 
-## Next Steps
+## AI Config (Bedrock)
 
-- Replace the stub in `backend/app/main.py` with your LLM provider call (e.g., OpenAI) and return the actual model response.
+Backend integrates Amazon Bedrock via `backend/app/AI/bedrock_client.py`.
+
+Configure via environment or JSON file:
+- Env vars: `AWS_REGION` (or `AWS_DEFAULT_REGION`), `BEDROCK_MODEL_ID`, `MEDAI_SYSTEM_PROMPT`, `MEDAI_MAX_TOKENS`, `MEDAI_TEMPERATURE`.
+- JSON file: copy `backend/app/AI/config.example.json`, edit, then set `MEDAI_CONFIG_PATH=/absolute/path/to/your.json` before starting the backend. Env vars override JSON values.
+
+Credentials: use standard AWS methods (env vars, `~/.aws/credentials`, or IAM role). You can also place credentials in the JSON for local dev, but do not commit secrets.
+
 - Add authentication and role-based access for multi-user environments.
 - Flesh out additional features/tabs and route state as needed.

@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { sendMessage } from '../../api'
 
 export default function AssistantChat() {
@@ -77,7 +79,13 @@ export default function AssistantChat() {
       <div className="messages">
         {messages.map((m, i) => (
           <div key={i} className={`message ${m.role}`}>
-            <div className="bubble">{m.content}</div>
+            <div className="bubble">
+              {m.role === 'assistant' ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+              ) : (
+                m.content
+              )}
+            </div>
           </div>
         ))}
         {loading && (

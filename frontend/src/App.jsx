@@ -6,8 +6,8 @@ export default function App() {
   const [active, setActive] = useState('assistant')
   const features = [
     { key: 'assistant', label: 'Assistant médical IA', enabled: true },
-    { key: 'records', label: 'Dossiers patients', enabled: false },
-    { key: 'imaging', label: "Analyse d'imagerie", enabled: false },
+    { key: 'records', label: 'Newsletter', enabled: false },
+    { key: 'imaging', label: "Dictaphone", enabled: false },
   ]
   const profile = {
     name: 'Dr. X',

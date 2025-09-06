@@ -56,6 +56,24 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-san
 .message.user .bubble { background: rgba(37, 99, 235, 0.15); border-color: rgba(37, 99, 235, 0.3); }
 .message.assistant .bubble { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3); }
 
+/* Markdown inside assistant bubbles */
+.message.assistant .bubble { line-height: 1.5; }
+.message.assistant .bubble p { margin: 0.2em 0; }
+.message.assistant .bubble h1,
+.message.assistant .bubble h2,
+.message.assistant .bubble h3,
+.message.assistant .bubble h4,
+.message.assistant .bubble h5,
+.message.assistant .bubble h6 { margin: 0.4em 0 0.2em; font-weight: 700; }
+.message.assistant .bubble ul,
+.message.assistant .bubble ol { margin: 0.3em 0 0.3em 1.2em; }
+.message.assistant .bubble li { margin: 0.2em 0; }
+.message.assistant .bubble code { background: rgba(255,255,255,0.08); padding: 0.1em 0.3em; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.message.assistant .bubble pre { background: #0b1220; padding: 10px; border-radius: 8px; overflow: auto; border: 1px solid var(--border); }
+.message.assistant .bubble pre code { background: transparent; padding: 0; }
+.message.assistant .bubble blockquote { margin: 0.4em 0; padding-left: 10px; border-left: 3px solid rgba(255,255,255,0.2); color: var(--muted); }
+.message.assistant .bubble a { color: #93c5fd; text-decoration: underline; }
+
 .composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); background: var(--panel); }
 .composer input { flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: #0b1220; color: var(--text); outline: none; }
 .composer input:focus { border-color: #334155; }

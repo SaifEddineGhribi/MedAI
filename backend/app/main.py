@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import os
+
+from app.AI.bedrock_client import BedrockChat
+from app.AI.config import load_config
 
 
 class ChatRequest(BaseModel):
@@ -32,8 +36,12 @@ def health():
     return {"status": "ok"}
 
 
+# Initialize config and Bedrock client once
+_CONFIG = load_config()
+bedrock = BedrockChat(config=_CONFIG)
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
-    # Stubbed response for now; later, call LLM provider here
-    return {"reply": "hello"}
-
+    reply = bedrock.ask(req.message, system_prompt=_CONFIG.model.system_prompt)
+    return {"reply": reply}

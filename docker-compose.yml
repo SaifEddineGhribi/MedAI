@@ -4,12 +4,22 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: medai-backend
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
     environment:
       - PYTHONUNBUFFERED=1
+      # AWS Bedrock auth/region (overridden by .env or host env)
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      # Explicit credentials via env (Heroku-style)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      # Optional: invoke via Bedrock Inference Profile instead of modelId
+      - BEDROCK_INFERENCE_PROFILE_ARN=${BEDROCK_INFERENCE_PROFILE_ARN}
     command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
 
   frontend:
