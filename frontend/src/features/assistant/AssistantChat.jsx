@@ -20,7 +20,7 @@ export default function AssistantChat() {
       if (raw) return JSON.parse(raw)
     } catch {}
     return [
-      { role: 'assistant', content: 'Bonjour Docteur Saif, comment puis-je vous aider ?' },
+      { role: 'assistant', content: 'Bonjour, comment puis-je vous aider ?' },
     ]
   })
   const [input, setInput] = useState('')
@@ -71,7 +71,7 @@ export default function AssistantChat() {
   }
 
   const clearChat = () => {
-    const greeting = { role: 'assistant', content: 'Bonjour Docteur Saif, comment puis-je vous aider ?' }
+    const greeting = { role: 'assistant', content: 'Bonjour, comment puis-je vous aider ?' }
     setMessages([greeting])
     setStarted(false)
     setInput('')
@@ -133,7 +133,7 @@ export default function AssistantChat() {
     return (
       <div className="landing">
         <div className="landing-content fade-in">
-          <h1 className="landing-title">Bonjour Docteur Saif, comment puis-je vous aider ?</h1>
+          <h1 className="landing-title">Bonjour, comment puis-je vous aider ?</h1>
           <form className="landing-composer" onSubmit={onSubmit}>
             <input
               autoFocus
@@ -227,23 +227,26 @@ function AssistantMessage({ content }) {
   const normalized = normalizeMarkdown(content)
   const { answerBody, sourcesBody } = splitSources(normalized)
   const [openSources, setOpenSources] = React.useState(false)
+  const SHOW_SOURCES = false // Temporarily disable Sources subsection
 
   return (
     <div className="assistant-message">
       <div className="section-body">
         <Markdown content={answerBody || normalized} />
       </div>
-      <div className="section group">
-        <div className="section-header" onClick={() => setOpenSources((v) => !v)}>
-          <span className="section-title">Sources</span>
-          <span className="section-toggle">{openSources ? '▾' : '▸'}</span>
-        </div>
-        {openSources && (
-          <div className="section-body">
-            {sourcesBody ? <Markdown content={sourcesBody} /> : <div>Aucune source fournie.</div>}
+      {SHOW_SOURCES && (
+        <div className="section group">
+          <div className="section-header" onClick={() => setOpenSources((v) => !v)}>
+            <span className="section-title">Sources</span>
+            <span className="section-toggle">{openSources ? '▾' : '▸'}</span>
           </div>
-        )}
-      </div>
+          {openSources && (
+            <div className="section-body">
+              {sourcesBody ? <Markdown content={sourcesBody} /> : <div>Aucune source fournie.</div>}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
