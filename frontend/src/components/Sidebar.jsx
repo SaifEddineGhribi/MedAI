@@ -1,9 +1,16 @@
 import React from 'react'
+import logoUrl from '../assets/logo.svg'
 
 export default function Sidebar({ features, active, onSelect, profile }) {
   return (
     <aside className="sidebar">
-      <div className="brand">MedAI</div>
+      <div className="brand">
+        <div className="brand-row">
+          <img src={logoUrl} alt="MedAI logo" className="brand-logo" />
+          <span>MedAI</span>
+        </div>
+        <div className="brand-subtitle">Founded by <br></br>Saif Eddine GHRIBI & Med Amine BENSALEM</div>
+      </div>
       <nav>
         {features.map((f) => (
           <button

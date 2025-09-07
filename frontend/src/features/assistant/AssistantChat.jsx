@@ -10,7 +10,7 @@ export default function AssistantChat() {
       if (raw) return JSON.parse(raw)
     } catch {}
     return [
-      { role: 'assistant', content: 'Bonjour Docteur X, comment puis-je vous aider ?' },
+      { role: 'assistant', content: 'Bonjour Docteur Saif, comment puis-je vous aider ?' },
     ]
   })
   const [input, setInput] = useState('')
@@ -55,7 +55,7 @@ export default function AssistantChat() {
   }
 
   const clearChat = () => {
-    const greeting = { role: 'assistant', content: 'Bonjour Docteur X, comment puis-je vous aider ?' }
+    const greeting = { role: 'assistant', content: 'Bonjour Docteur Saif, comment puis-je vous aider ?' }
     setMessages([greeting])
     setStarted(false)
     setInput('')
@@ -109,7 +109,7 @@ export default function AssistantChat() {
     return (
       <div className="landing">
         <div className="landing-content fade-in">
-          <h1 className="landing-title">Bonjour Docteur X, comment puis-je vous aider ?</h1>
+          <h1 className="landing-title">Bonjour Docteur Saif, comment puis-je vous aider ?</h1>
           <form className="landing-composer" onSubmit={onSubmit}>
             <input
               autoFocus

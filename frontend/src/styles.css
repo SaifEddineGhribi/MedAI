@@ -17,6 +17,9 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-san
 
 .sidebar { width: 280px; background: var(--panel); border-right: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .brand { font-weight: 700; font-size: 20px; letter-spacing: 0.5px; margin-bottom: 8px; }
+.brand-row { display: flex; align-items: center; gap: 10px; }
+.brand-logo { width: 28px; height: 28px; border-radius: 6px; }
+.brand-subtitle { font-weight: 500; font-size: 11px; color: var(--muted); margin-top: 4px; }
 .nav-item { width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; border: 1px solid transparent; color: var(--text); background: transparent; cursor: pointer; }
 .nav-item:hover:not(:disabled) { background: #1f2937; }
 .nav-item.active { background: #1f2937; border-color: var(--border); }

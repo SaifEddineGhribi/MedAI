@@ -10,7 +10,7 @@ export default function App() {
     { key: 'imaging', label: "Dictaphone", enabled: false },
   ]
   const profile = {
-    name: 'Dr. X',
+    name: 'Dr. Saif',
     specialty: 'Cardiologue',
     facility: 'Clinique Générale',
     email: 'dr.x@example.com',
