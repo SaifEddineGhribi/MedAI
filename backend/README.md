@@ -40,3 +40,30 @@ Provide AWS credentials using one of the standard AWS SDK methods:
 
 You may also place credentials in the JSON config (for local dev only): `access_key_id`, `secret_access_key`, `session_token`.
 Avoid committing secrets to version control.
+
+## Amazon Transcribe (Streaming) — Dictaphone Backend
+
+This backend exposes a WebSocket that proxies microphone audio to Amazon Transcribe Streaming and streams back interim and final transcripts.
+
+- Endpoint: `ws://localhost:8000/ws/transcribe?lang=fr-FR&sample_rate=16000&encoding=pcm`
+- Query params:
+  - `lang`: `fr-FR` or `en-US` (default: `fr-FR`)
+  - `sample_rate`: audio sample rate in Hz (default: `16000`)
+  - `encoding`: `pcm` or `ogg-opus` (default: `pcm`)
+
+Client protocol:
+- Send binary frames with audio chunks (recommended: 16 kHz, mono, 16‑bit PCM LE when using `encoding=pcm`).
+- When done, either close the socket or send a text frame `END` to flush remaining results.
+- Receive JSON text frames with transcripts:
+  - `{ "type": "partial", "text": "...", "language": "fr-FR" }`
+  - `{ "type": "final", "text": "...", "language": "fr-FR" }`
+
+AWS setup:
+- Ensure AWS credentials and region are configured so the SDK can connect to Transcribe Streaming.
+  - `AWS_REGION` or `AWS_DEFAULT_REGION` (e.g., `us-east-1`)
+  - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (and `AWS_SESSION_TOKEN` if applicable)
+- IAM must allow `transcribe:StartStreamTranscriptionWebSocket`.
+
+Notes:
+- If you prefer Opus, set `encoding=ogg-opus` and stream Ogg/Opus frames. Most browsers produce WebM/Opus by default; for compatibility with Transcribe, prefer raw PCM or transcode to Ogg/Opus.
+- CORS does not apply to WebSockets, but ensure you connect to the correct `ws://` origin/port.

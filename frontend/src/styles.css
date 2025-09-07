@@ -211,3 +211,32 @@ body {
   .composer button { padding: 10px 12px; font-size: 15px; }
   .landing-composer input { width: 100%; }
 }
+
+/* Dictaphone */
+.dictaphone { display: flex; flex-direction: column; height: 100%; }
+.dicta-controls { display: flex; gap: 8px; align-items: center; }
+.dicta-label { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-size: 14px; }
+.dicta-select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(11,18,32,0.6); color: var(--text); }
+.dicta-hint { margin-left: auto; color: var(--muted); font-size: 12px; }
+.dicta-error { margin-left: auto; color: #ef4444; font-size: 12px; }
+
+.dicta-body { display: grid; grid-template-columns: 1fr auto; gap: 16px; padding: 16px; align-items: start; }
+.dicta-transcript textarea { width: 100%; min-height: 320px; resize: vertical; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(11, 18, 32, 0.6); color: var(--text); outline: none; }
+.dicta-transcript textarea:focus { border-color: #334155; box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.25); }
+
+.dicta-mic { display: grid; justify-items: center; gap: 8px; padding: 8px; }
+.mic-button { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; color: white; background: var(--primary); border: 1px solid var(--glass-border); cursor: pointer; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35); transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease; }
+.mic-button:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(37, 99, 235, 0.45); }
+.mic-button:disabled { opacity: 0.6; cursor: not-allowed; }
+.mic-button.listening { background: #16a34a; box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6); animation: pulseGlow 1.6s infinite; }
+.dicta-status { font-size: 12px; color: var(--muted); }
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6); }
+  70% { box-shadow: 0 0 0 14px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+@media (max-width: 900px) {
+  .dicta-body { grid-template-columns: 1fr; }
+}

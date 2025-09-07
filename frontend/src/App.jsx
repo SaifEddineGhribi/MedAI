@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import Sidebar from './components/Sidebar'
 import AssistantChat from './features/assistant/AssistantChat'
+import Dictaphone from './features/dictaphone/Dictaphone'
 
 export default function App() {
   const [active, setActive] = useState('assistant')
   const features = [
     { key: 'assistant', label: 'Assistant médical IA', enabled: true },
     { key: 'records', label: 'Newsletter', enabled: false },
-    { key: 'imaging', label: "Dictaphone", enabled: false },
+    { key: 'dictaphone', label: 'Dictaphone', enabled: true },
   ]
   const [profile, setProfile] = useState(() => {
     try {
@@ -43,7 +44,9 @@ export default function App() {
     <div className="app">
       <Sidebar features={features} active={active} onSelect={setActive} profile={profile} setProfile={setProfile} />
       <main className="content">
-        {active === 'assistant' ? <AssistantChat doctorProfile={profile} /> : <DisabledFeature />}
+        {active === 'assistant' && <AssistantChat doctorProfile={profile} />}
+        {active === 'dictaphone' && <Dictaphone />}
+        {active !== 'assistant' && active !== 'dictaphone' && <DisabledFeature />}
       </main>
     </div>
   )

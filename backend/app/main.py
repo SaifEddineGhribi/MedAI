@@ -1,8 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 import os
+import asyncio
+import logging
+
+# Amazon Transcribe Streaming SDK
+from amazon_transcribe.client import TranscribeStreamingClient
+from amazon_transcribe.model import TranscriptEvent
 
 from app.AI.bedrock_client import BedrockChat
 from app.AI.config import load_config
@@ -109,3 +115,167 @@ def debug_system_prompt():
         "system_prompt": _CONFIG.model.system_prompt,
         "note": "Do not expose in production.",
     }
+
+
+# --------------------------
+# Amazon Transcribe Streaming
+# --------------------------
+
+def _normalize_lang(lang: Optional[str]) -> str:
+    # Allow simple values like 'fr'/'en' and expand to supported codes
+    if not lang:
+        return "fr-FR"
+    l = lang.strip()
+    if l.lower() in ("fr", "fr-fr", "fr_fr"):  # French
+        return "fr-FR"
+    if l.lower() in ("en", "en-us", "en_us"):  # English (US)
+        return "en-US"
+    # Fallback to fr-FR if unsupported
+    return "fr-FR"
+
+
+@app.websocket("/ws/transcribe")
+async def ws_transcribe(websocket: WebSocket):
+
+    logger = logging.getLogger("medai.transcribe")
+    logger.setLevel(logging.DEBUG)
+    logger.info("Websocket started running.")
+    """WebSocket proxy to Amazon Transcribe Streaming.
+
+    Client responsibilities:
+    - Connect with optional query params: ?lang=fr-FR&sample_rate=16000&encoding=pcm
+    - Send binary frames containing raw PCM 16-bit LE audio at the agreed sample rate (default 16kHz).
+    - When done, send a text frame with content 'END' or simply close.
+
+    Server behavior:
+    - Forwards binary audio to Transcribe input stream.
+    - Streams back partial and final transcripts as JSON text frames:
+        {"type":"partial","text":"..."}
+        {"type":"final","text":"..."}
+    """
+    
+    # Allow toggling verbosity via env var
+   
+    
+
+
+    await websocket.accept()
+    try:
+        params = websocket.query_params
+        lang = _normalize_lang(params.get("lang"))
+        try:
+            sample_rate = int(params.get("sample_rate") or 16000)
+        except Exception:
+            sample_rate = 16000
+        encoding = (params.get("encoding") or "pcm").lower()
+        if encoding not in ("pcm", "ogg-opus"):
+            encoding = "pcm"
+
+        # Initialize Transcribe Streaming client lazily
+        region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
+        client = TranscribeStreamingClient(region=region)
+
+        client_host = getattr(getattr(websocket, "client", None), "host", "?")
+        client_port = getattr(getattr(websocket, "client", None), "port", "?")
+        logger.info("WS connect from %s:%s | lang=%s sr=%s enc=%s region=%s", client_host, client_port, lang, sample_rate, encoding, region)
+
+        # Start a stream with selected params
+        logger.debug("Starting Transcribe stream...")
+        stream = await client.start_stream_transcription(
+            language_code=lang,
+            media_sample_rate_hz=sample_rate,
+            media_encoding=encoding,
+        )
+        logger.info("Transcribe stream started")
+
+        stats = {
+            "bytes_in": 0,
+            "frames_in": 0,
+            "partials_out": 0,
+            "finals_out": 0,
+        }
+
+        async def forward_audio():
+            try:
+                while True:
+                    msg = await websocket.receive()
+                    if msg.get("type") == "websocket.disconnect":
+                        logger.info("WebSocket disconnect signal received during audio forward")
+                        break
+                    if "bytes" in msg and msg["bytes"] is not None:
+                        chunk = msg["bytes"]
+                        size = len(chunk)
+                        stats["bytes_in"] += size
+                        stats["frames_in"] += 1
+                        if stats["frames_in"] % 50 == 0:
+                            logger.debug(
+                                "Forwarded %s frames (%s bytes) to Transcribe",
+                                stats["frames_in"],
+                                stats["bytes_in"],
+                            )
+                        await stream.input_stream.send_audio_event(audio_chunk=chunk)
+                    elif "text" in msg and msg["text"] is not None:
+                        # If client signals end, stop upstream
+                        signal = msg["text"].strip()
+                        logger.debug("Received text control frame: %r", signal)
+                        if signal.upper() == "END":
+                            logger.info("END signal received from client; closing input stream")
+                            break
+            finally:
+                # End the input audio stream to flush any buffered results
+                try:
+                    await stream.input_stream.end_stream()
+                except Exception:
+                    pass
+                logger.info(
+                    "Audio input stream closed | frames=%s bytes=%s",
+                    stats["frames_in"],
+                    stats["bytes_in"],
+                )
+
+        async def relay_transcripts():
+            async for event in stream.output_stream:
+                if isinstance(event, TranscriptEvent):
+                    results = event.transcript.results or []
+                    for res in results:
+                        # res.is_partial indicates interim hypothesis
+                        is_final = not getattr(res, "is_partial", False)
+                        for alt in (res.alternatives or []):
+                            text = (alt.transcript or "").strip()
+                            if not text:
+                                continue
+                            snippet = (text[:120] + "…") if len(text) > 120 else text
+                            if is_final:
+                                stats["finals_out"] += 1
+                                logger.debug("Final #%s: %s", stats["finals_out"], snippet)
+                            else:
+                                stats["partials_out"] += 1
+                                # Throttle partial logs
+                                if stats["partials_out"] % 10 == 0:
+                                    logger.debug("Partial #%s: %s", stats["partials_out"], snippet)
+
+                            payload = {
+                                "type": "final" if is_final else "partial",
+                                "text": text,
+                                "language": lang,
+                            }
+                            await websocket.send_json(payload)
+
+        # Run both tasks concurrently
+        await asyncio.gather(forward_audio(), relay_transcripts())
+
+    except WebSocketDisconnect:
+        # Client disconnected; nothing else to do
+        logging.getLogger("medai.transcribe").info("WebSocket disconnected")
+        return
+    except Exception as e:
+        logging.getLogger("medai.transcribe").exception("Transcribe WS error: %s", e)
+        try:
+            await websocket.send_json({"type": "error", "message": str(e)})
+        except Exception:
+            pass
+        finally:
+            try:
+                await websocket.close()
+            except Exception:
+                pass
