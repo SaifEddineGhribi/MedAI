@@ -28,15 +28,30 @@ class ChatResponse(BaseModel):
 
 app = FastAPI(title="MedAI Backend", version="0.1.0")
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+
+def _parse_cors_origins() -> List[str]:
+    raw = os.getenv("MEDAI_CORS_ORIGINS", "").strip()
+    if raw == "*":
+        return ["*"]
+    if raw:
+        parts = [p.strip() for p in raw.split(",") if p.strip()]
+        if parts:
+            return parts
+    return [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
+
+_CORS_ORIGINS = _parse_cors_origins()
+_ALLOW_CREDENTIALS_ENV = os.getenv("MEDAI_CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
+# Browsers disallow credentials with wildcard origin. Avoid sending creds with "*".
+_ALLOW_CREDENTIALS = _ALLOW_CREDENTIALS_ENV and _CORS_ORIGINS != ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=_CORS_ORIGINS,
+    allow_credentials=_ALLOW_CREDENTIALS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
