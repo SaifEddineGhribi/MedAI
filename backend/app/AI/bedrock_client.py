@@ -93,7 +93,13 @@ class BedrockChat:
             "messages": self._to_anthropic_messages(messages),
         }
         if system_prompt:
-            payload["system"] = system_prompt
+            # Append requested instruction at the end of the system prompt
+            extra = "utiliser des emojis pertinents par section"
+            sp = system_prompt
+            if extra.lower() not in (sp or "").lower():
+                # Ensure clean spacing and place the instruction at the very end
+                sp = f"{sp.rstrip()}\n{extra}"
+            payload["system"] = sp
 
         try:
             response = self._client.invoke_model(

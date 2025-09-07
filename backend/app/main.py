@@ -93,3 +93,15 @@ def chat(req: ChatRequest):
     except Exception as e:
         reply = f"Server configuration error: {e}"
     return {"reply": reply}
+
+
+@app.get("/debug/system_prompt")
+def debug_system_prompt():
+    """Expose effective system prompt (for debugging only)."""
+    return {
+        "model_id": _CONFIG.model.model_id,
+        "temperature": _CONFIG.model.temperature,
+        "max_tokens": _CONFIG.model.max_tokens,
+        "system_prompt": _CONFIG.model.system_prompt,
+        "note": "Do not expose in production.",
+    }

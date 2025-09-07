@@ -102,7 +102,8 @@ export default function AssistantChat({ doctorProfile }) {
     chatInputRef.current?.focus()
     try {
       const reply = await sendChat(history)
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      const cleaned = stripLeadingGreeting(reply)
+      setMessages((prev) => [...prev, { role: 'assistant', content: cleaned }])
     } catch (err) {
       console.error(err)
       setMessages((prev) => [
@@ -225,6 +226,23 @@ export default function AssistantChat({ doctorProfile }) {
       </form>
     </div>
   )
+}
+
+function stripLeadingGreeting(text) {
+  if (!text) return ''
+  let t = String(text || '')
+  // Remove BOM if present
+  t = t.replace(/^\uFEFF/, '')
+  const lines = t.split(/\r?\n/)
+  const first = (lines[0] || '').trim()
+  // Match greetings like "Bonjour Dr.", "Bonsoir Docteur", "Salut", with optional punctuation/space
+  if (/^(bonjour|bonsoir|salut)\b/i.test(first)) {
+    lines.shift()
+    // Remove leading empty lines after greeting
+    while (lines.length && lines[0].trim() === '') lines.shift()
+    return lines.join('\n').trimStart()
+  }
+  return t
 }
 
 function AssistantMessage({ content }) {
