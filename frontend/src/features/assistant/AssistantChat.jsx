@@ -142,7 +142,16 @@ export default function AssistantChat() {
           <div key={i} className={`message ${m.role}`}>
             <div className="bubble bubble-appear">
               {m.role === 'assistant' ? (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: ({ node, ...props }) => (
+                      <a target="_blank" rel="noopener noreferrer" {...props} />
+                    ),
+                  }}
+                >
+                  {m.content}
+                </ReactMarkdown>
               ) : (
                 m.content
               )}
