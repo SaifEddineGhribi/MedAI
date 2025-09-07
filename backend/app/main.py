@@ -1,14 +1,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import List, Optional, Literal
 import os
 
 from app.AI.bedrock_client import BedrockChat
 from app.AI.config import load_config
 
 
+class Message(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
 class ChatRequest(BaseModel):
-    message: str
+    # Backward compatibility: allow either a single message or full history
+    message: Optional[str] = Field(default=None, description="Single user message")
+    messages: Optional[List[Message]] = Field(
+        default=None,
+        description="Full chat history as list of {role, content}",
+    )
 
 
 class ChatResponse(BaseModel):
@@ -43,5 +54,12 @@ bedrock = BedrockChat(config=_CONFIG)
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
-    reply = bedrock.ask(req.message, system_prompt=_CONFIG.model.system_prompt)
+    # Prefer multi-turn history if provided; otherwise fall back to single-turn
+    if req.messages:
+        # Convert Pydantic models to plain dicts
+        history = [{"role": m.role, "content": m.content} for m in req.messages]
+        reply = bedrock.chat(history, system_prompt=_CONFIG.model.system_prompt)
+    else:
+        msg = req.message or ""
+        reply = bedrock.ask(msg, system_prompt=_CONFIG.model.system_prompt)
     return {"reply": reply}

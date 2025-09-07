@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { sendMessage } from '../../api'
+import { sendChat } from '../../api'
 
 export default function AssistantChat() {
   const [messages, setMessages] = useState(() => {
@@ -70,13 +70,15 @@ export default function AssistantChat() {
     if (!started) setStarted(true)
 
     const userMsg = { role: 'user', content: input.trim() }
+    // Prepare history to send (include the new user message)
+    const history = [...messages, userMsg]
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     setLoading(true)
     // keep focus on the chat input when sending
     chatInputRef.current?.focus()
     try {
-      const reply = await sendMessage(userMsg.content)
+      const reply = await sendChat(history)
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
     } catch (err) {
       console.error(err)
