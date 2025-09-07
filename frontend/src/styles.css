@@ -195,7 +195,10 @@ body {
   .brand-subtitle { display: none; }
   .sidebar nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
   .nav-item { flex: 0 0 auto; padding: 8px 10px; font-size: 14px; }
-  .sidebar-footer { display: none; }
+  /* Show profile management on mobile too */
+  .sidebar-footer { display: block; }
+  /* Make feature buttons wrap to a new line when space is tight */
+  .sidebar nav { flex-wrap: wrap; overflow-x: visible; }
 
   .chat-toolbar { position: sticky; top: 56px; z-index: 10; }
   .messages { padding: 12px 10px; gap: 8px; }
