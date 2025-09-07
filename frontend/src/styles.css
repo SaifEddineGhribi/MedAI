@@ -47,7 +47,11 @@ body {
 .profile-info .meta { font-size: 12px; }
 .profile-info .muted { color: var(--muted); }
 .profile-actions { display: flex; }
-.profile-btn { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: not-allowed; }
+.profile-btn { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; }
+/* Inputs in sidebar profile editor */
+.profile-editor input, .profile-editor select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(11, 18, 32, 0.6); color: var(--text); outline: none; }
+.profile-editor input:disabled { opacity: 0.6; cursor: not-allowed; }
+.profile-editor select { background: rgba(11, 18, 32, 0.6); }
 
 .content { flex: 1; display: flex; flex-direction: column; height: 100%; }
 .disabled { margin: auto; color: var(--muted); }

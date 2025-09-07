@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { sendChat } from '../../api'
 
-export default function AssistantChat() {
+export default function AssistantChat({ doctorProfile }) {
   // Patient context (persisted locally; injected into LLM context invisibly)
   const [patient, setPatient] = useState(() => {
     try {
@@ -90,7 +90,11 @@ export default function AssistantChat() {
     // If patient context exists, prepend a hidden context message.
     const hasPatient = Object.values(patient || {}).some((v) => (v || '').trim().length > 0)
     const patientMsg = hasPatient ? { role: 'user', content: formatPatientForContext(patient) } : null
-    const history = patientMsg ? [patientMsg, ...messages, userMsg] : [...messages, userMsg]
+    const hasDoctor = !!(doctorProfile && (doctorProfile.specialty || doctorProfile.name))
+    const doctorMsg = hasDoctor ? { role: 'user', content: formatDoctorForContext(doctorProfile) } : null
+    // Order: Doctor profile (if any) → Patient context (if any) → prior messages → new user message
+    const prefix = [doctorMsg, patientMsg].filter(Boolean)
+    const history = prefix.length ? [...prefix, ...messages, userMsg] : [...messages, userMsg]
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     setLoading(true)
@@ -567,6 +571,14 @@ function formatPatientForContext(p) {
     p.conditions ? `- Conditions: ${p.conditions}` : '',
     p.medications ? `- Medications: ${p.medications}` : '',
     p.allergies ? `- Allergies: ${p.allergies}` : '',
+  ].filter(Boolean)
+  return lines.join('\n')
+}
+
+function formatDoctorForContext(d) {
+  const lines = ['Contexte médecin:',
+    d.name ? `- Nom: ${d.name}` : '',
+    d.specialty ? `- Spécialité: ${d.specialty}` : '',
   ].filter(Boolean)
   return lines.join('\n')
 }
