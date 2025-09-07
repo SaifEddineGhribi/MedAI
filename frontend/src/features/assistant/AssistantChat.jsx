@@ -29,6 +29,7 @@ export default function AssistantChat() {
     return false
   })
   const chatInputRef = useRef(null)
+  const messagesEndRef = useRef(null)
 
   // Persist messages to localStorage
   useEffect(() => {
@@ -123,6 +124,11 @@ export default function AssistantChat() {
     }
   }, [loading, started])
 
+  // Smooth scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
+
   if (!started) {
     return (
       <div className="landing">
@@ -180,22 +186,14 @@ export default function AssistantChat() {
           <div key={i} className={`message ${m.role}`}>
             <div className="bubble bubble-appear">
               {m.role === 'assistant' ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    a: ({ node, ...props }) => (
-                      <a target="_blank" rel="noopener noreferrer" {...props} />
-                    ),
-                  }}
-                >
-                  {m.content}
-                </ReactMarkdown>
+                <AssistantMessage content={m.content} />
               ) : (
                 m.content
               )}
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
         {loading && (
           <div className="message assistant">
             <div className="bubble bubble-appear">
@@ -223,6 +221,240 @@ export default function AssistantChat() {
       </form>
     </div>
   )
+}
+
+function AssistantMessage({ content }) {
+  const normalized = normalizeMarkdown(content)
+  const sections = parseSections(normalized)
+  // Default expanded sections
+  const defaults = sections.map((s) => {
+    const t = s.title.toLowerCase()
+    if (t.includes('triage') || t.includes('résumé')) return true
+    return false
+  })
+  const [open, setOpen] = React.useState(defaults)
+
+  return (
+    <div className="assistant-message">
+      {sections.length === 0 ? (
+        <Markdown content={normalized} />
+      ) : (
+        sections.map((s, i) => (
+          <div key={i} className="section">
+            <div className="section-header" onClick={() => setOpen((prev) => prev.map((v, idx) => (idx === i ? !v : v)))}>
+              <span className="section-title">{s.title}</span>
+              <span className="section-toggle">{open[i] ? '▾' : '▸'}</span>
+            </div>
+            {open[i] && (
+              <div className="section-body">
+                {s.title.toLowerCase().includes('triage') ? (
+                  <TriageBlock body={s.body} />
+                ) : (
+                  <Markdown content={s.body} />
+                )}
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  )
+}
+
+function TriageBlock({ body }) {
+  // Take the first non-empty line to derive badge
+  const firstLine = (body || '').split(/\r?\n/).find((l) => l.trim().length > 0) || ''
+  const level = inferUrgency(firstLine)
+  return (
+    <div>
+      {level && <span className={`badge ${level}`}>{badgeLabel(level)}</span>}
+      <Markdown content={body} />
+    </div>
+  )
+}
+
+function inferUrgency(line) {
+  const l = line.toLowerCase()
+  if (l.includes('urgence vitale')) return 'emergent'
+  if (l.includes('urgent')) return 'urgent'
+  if (l.includes('routine')) return 'routine'
+  return ''
+}
+
+function badgeLabel(level) {
+  if (level === 'emergent') return 'Urgence vitale'
+  if (level === 'urgent') return 'Urgent (<48 h)'
+  if (level === 'routine') return 'Routine'
+  return ''
+}
+
+function Markdown({ content }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        a: ({ node, ...props }) => (
+          <a target="_blank" rel="noopener noreferrer" {...props} />
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  )
+}
+
+function parseSections(text) {
+  const lines = (text || '').split(/\r?\n/)
+  const out = []
+  let current = null
+  for (const line of lines) {
+    // Primary: Markdown heading ###
+    let m = line.match(/^###\s+(.+)$/)
+    if (m) {
+      if (current) out.push(current)
+      const title = sanitizeTitle(m[1])
+      current = { title, body: '' }
+      continue
+    }
+    // Fallback: bold-only line as section title
+    m = line.match(/^\s*(?:\*\*|__)(.+?)(?:\*\*|__)\s*$/)
+    if (m) {
+      if (current) out.push(current)
+      const title = m[1].replace(/\s*[:：]\s*$/, '').trim()
+      current = { title, body: '' }
+      continue
+    }
+    // Fallback: plain line ending with colon
+    m = line.match(/^\s*([^#>\-*`].*?)\s*[:：]\s*$/)
+    if (m) {
+      if (current) out.push(current)
+      current = { title: m[1].trim(), body: '' }
+      continue
+    }
+    if (current) {
+      current.body += (current.body ? '\n' : '') + line
+    }
+  }
+  if (current) out.push(current)
+  return out
+}
+
+function sanitizeTitle(raw) {
+  let t = (raw || '').trim()
+  // Strip wrapping bold markers and trailing colon or arrows
+  t = t.replace(/^\s*(?:\*\*|__)?\s*(.*?)\s*(?:\*\*|__)?\s*$/s, '$1')
+  t = t.replace(/\s*[:：]+\s*$/u, '')
+  t = t.replace(/[▾▸›»]+\s*$/u, '')
+  return t.trim()
+}
+
+function normalizeMarkdown(text) {
+  if (!text) return ''
+  let t = text
+  // 1) Convert bold-only headings like **Titre:** to ### Titre
+  t = t.replace(/^\s*\*\*(.+?)\*\*\s*(?:[:：]?\s*(?:[▾▸›»]+)?)?\s*$/gm, (m, p1) => `### ${p1.trim()}`)
+  // Also handle __Titre__
+  t = t.replace(/^\s*__(.+?)__\s*(?:[:：]?\s*(?:[▾▸›»]+)?)?\s*$/gm, (m, p1) => `### ${p1.trim()}`)
+  // 1b) Convert plain title lines ending with a colon into headings
+  t = t.replace(/^(?!\s*(?:#|>|-|\*|```|\d+\.|\|))\s*(.+?)\s*[:：]\s*$/gm, (m, p1) => `### ${p1.trim()}`)
+  // 1c) Ensure Sources/References have their own heading
+  t = t.replace(/^\s*(sources?|références?)\s*[:：]?\s*$/gim, '### Sources')
+  // 2) Replace leading bullets using • or ◦ with proper markdown '- '
+  t = t.replace(/^\s*[•◦]\s+/gm, '- ')
+  // 3) Split inline bullets: " • item1 • item2" -> new lines with '- '
+  t = t.replace(/\s+[•◦]\s+/g, '\n- ')
+  // 3b) Drop standalone dropdown arrows lines
+  t = t.replace(/^\s*[▾▸›»]+\s*$/gm, '')
+  // 4) Ensure blank line after headings
+  t = t.replace(/^(###\s+.+)(?!\n\n)/gm, '$1\n')
+  // 5) Linkify domains (www.* and bare domains) by adding https://
+  t = t.replace(/(?<![\w/:])(www\.[^\s)]+)\/??/g, (m, host) => `https://${host}`)
+  t = t.replace(/(?<![\w/:])((?:[a-z0-9-]+\.)+(?:org|com|fr|net|gov|edu|int|info|io|ai)(?:\/[\w\-./#?=&%+]*)?)/gi, (m, url) => {
+    if (/^https?:\/\//i.test(url)) return url
+    // Avoid converting markdown links and tables
+    if (url.includes('|')) return url
+    return `https://${url}`
+  })
+  // 6) Basic pipe-table helper: if multiple consecutive lines contain '|', insert separator after first
+  t = addTableSeparators(t)
+  // 6b) Bulletize plain lines under headings: turn consecutive non-empty, non-list lines into '- ' items
+  t = bulletizePlainBlocks(t)
+  // 7) Trim excessive blank lines
+  t = t.replace(/\n{3,}/g, '\n\n')
+  return t
+}
+
+function addTableSeparators(text) {
+  const lines = text.split(/\r?\n/)
+  const out = []
+  let i = 0
+  while (i < lines.length) {
+    out.push(lines[i])
+    if (lines[i].includes('|')) {
+      // Look ahead for a block of '|' lines
+      const start = i
+      let j = i + 1
+      while (j < lines.length && lines[j].includes('|') && !/^\s*[-:|\s]+$/.test(lines[j])) j++
+      const count = j - start
+      if (count >= 2) {
+        // Insert separator after header (start line) if next line is not already separator
+        const cols = lines[start].split('|').length - 1
+        const sep = Array.from({ length: cols }, () => '---').join(' | ')
+        // Only insert if next line not a separator row
+        if (!/^\s*[-:|\s]+$/.test(lines[start + 1])) {
+          out.push(sep)
+        }
+      }
+      // Push the rest of the block
+      for (let k = i + 1; k < j; k++) out.push(lines[k])
+      i = j
+      continue
+    }
+    i++
+  }
+  return out.join('\n')
+}
+
+function bulletizePlainBlocks(text) {
+  const lines = text.split(/\r?\n/)
+  const out = []
+  let inBlock = false
+  let blockStart = -1
+  const isListLike = (s) => /^(\s*(-|\*|\+|\d+\.|>\s|\|)|\s*```)/.test(s) || s.trim() === '' || /^###\s+/.test(s)
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const listy = isListLike(line)
+    if (!listy && !inBlock) {
+      inBlock = true
+      blockStart = out.length
+      out.push(line)
+    } else if (!listy && inBlock) {
+      out.push(line)
+    } else {
+      // We hit a boundary; flush previous block
+      if (inBlock) {
+        const blockLen = out.length - blockStart
+        if (blockLen >= 2) {
+          for (let k = blockStart; k < out.length; k++) {
+            if (out[k].trim().length) out[k] = `- ${out[k].trim()}`
+          }
+        }
+        inBlock = false
+        blockStart = -1
+      }
+      out.push(line)
+    }
+  }
+  // Flush at end
+  if (inBlock) {
+    const blockLen = out.length - blockStart
+    if (blockLen >= 2) {
+      for (let k = blockStart; k < out.length; k++) {
+        if (out[k].trim().length) out[k] = `- ${out[k].trim()}`
+      }
+    }
+  }
+  return out.join('\n')
 }
 
 function formatPatientForContext(p) {
