@@ -225,38 +225,25 @@ export default function AssistantChat() {
 
 function AssistantMessage({ content }) {
   const normalized = normalizeMarkdown(content)
-  const sections = parseSections(normalized)
-  // Default expanded sections
-  const defaults = sections.map((s) => {
-    const t = s.title.toLowerCase()
-    if (t.includes('triage') || t.includes('résumé')) return true
-    return false
-  })
-  const [open, setOpen] = React.useState(defaults)
+  const { answerBody, sourcesBody } = splitSources(normalized)
+  const [openSources, setOpenSources] = React.useState(false)
 
   return (
     <div className="assistant-message">
-      {sections.length === 0 ? (
-        <Markdown content={normalized} />
-      ) : (
-        sections.map((s, i) => (
-          <div key={i} className="section">
-            <div className="section-header" onClick={() => setOpen((prev) => prev.map((v, idx) => (idx === i ? !v : v)))}>
-              <span className="section-title">{s.title}</span>
-              <span className="section-toggle">{open[i] ? '▾' : '▸'}</span>
-            </div>
-            {open[i] && (
-              <div className="section-body">
-                {s.title.toLowerCase().includes('triage') ? (
-                  <TriageBlock body={s.body} />
-                ) : (
-                  <Markdown content={s.body} />
-                )}
-              </div>
-            )}
+      <div className="section-body">
+        <Markdown content={answerBody || normalized} />
+      </div>
+      <div className="section group">
+        <div className="section-header" onClick={() => setOpenSources((v) => !v)}>
+          <span className="section-title">Sources</span>
+          <span className="section-toggle">{openSources ? '▾' : '▸'}</span>
+        </div>
+        {openSources && (
+          <div className="section-body">
+            {sourcesBody ? <Markdown content={sourcesBody} /> : <div>Aucune source fournie.</div>}
           </div>
-        ))
-      )}
+        )}
+      </div>
     </div>
   )
 }
@@ -339,6 +326,108 @@ function parseSections(text) {
   return out
 }
 
+function splitSources(text) {
+  // Prefer an explicit heading first
+  const headingRe = /(\n|^)###\s+Sources\s*(?:\n|$)/i
+  let m = text.match(headingRe)
+  if (m) {
+    const idx = m.index ?? 0
+    const splitIdx = idx + m[0].length
+    return {
+      answerBody: text.slice(0, idx).trim(),
+      sourcesBody: text.slice(splitIdx).trim(),
+    }
+  }
+  // Fallback: detect a Sources/References title line (with optional list marker or bold)
+  const lines = text.split(/\r?\n/)
+  const isSourcesTitle = (ln) => {
+    const clean = (ln || '')
+      .replace(/^[\s>*-+•◦]+/, '')
+      .replace(/^\s*(?:\*\*|__)?\s*(.*?)\s*(?:\*\*|__)?\s*$/s, '$1')
+      .trim()
+    return /^(sources?|références?)\s*[:：]?$/i.test(clean)
+  }
+  const isLinkLike = (ln) => {
+    const s = (ln || '').trim()
+    if (!s) return false
+    // markdown link [text](url)
+    if (/\[[^\]]+\]\((https?:\/\/|www\.)[^)]+\)/i.test(s)) return true
+    // bare url or domain
+    if (/(https?:\/\/|www\.|[a-z0-9-]+\.(?:org|com|fr|net|gov|edu|int|info|io|ai)\b)/i.test(s)) return true
+    return false
+  }
+  const titleIdx = lines.findIndex(isSourcesTitle)
+  if (titleIdx !== -1) {
+    const before = lines.slice(0, titleIdx)
+    const after = lines.slice(titleIdx + 1)
+    const src = []
+    const keep = []
+    for (const ln of after) {
+      if (isLinkLike(ln)) src.push(ln)
+      else keep.push(ln)
+    }
+    return {
+      answerBody: before.concat(keep).join('\n').trim(),
+      sourcesBody: src.join('\n').trim(),
+    }
+  }
+  return { answerBody: text, sourcesBody: '' }
+}
+
+function groupSections(sections) {
+  const groups = []
+  const push = (key, title, section) => {
+    let g = groups.find((x) => x.key === key)
+    if (!g) {
+      g = { key, title, sections: [] }
+      groups.push(g)
+    }
+    if (section) g.sections.push(section)
+  }
+
+  const canon = (s) => (s || '').toLowerCase()
+  const isProcedure = (t) => /^(\d+\.|\d+\)|\*)\s*/.test(t) || /(varicoc[ée]l|embolisation|laparoscop)/i.test(t)
+  const mapKey = (title) => {
+    const t = canon(title)
+    if (/sources?|r[ée]f[ée]rences?/.test(t)) return 'sources'
+    if (/(clarification|question)/.test(t) || /triage/.test(t)) return 'clarification_triage'
+    if (/r[ée]sum[ée]/.test(t)) return 'summary'
+    if (/(crit[èe]re|diagnost|facteur|diff[ée]rentiel)/.test(t)) return 'diagnostic'
+    if (/(alarme|red\s*flags?)/.test(t)) return 'red_flags'
+    if (/(bilan|examen|imagerie|biolog|exploration)/.test(t)) return 'workup'
+    if (/(option|th[ée]rapeut|proc[ée]dure)/.test(t) || isProcedure(title)) return 'therapeutic_options'
+    if (/(prise en charge|plan|traitement|suivi|contr[ôo]le)/.test(t)) return 'management'
+    if (/(conseil|document)/.test(t)) return 'counsel_doc'
+    return 'other'
+  }
+
+  // First pass: assign sections to groups
+  for (const s of sections) {
+    const key = mapKey(s.title)
+    push(key, groupTitleFor(key), s)
+  }
+
+  // Ensure Sources is last
+  const sources = groups.filter((g) => g.key === 'sources')
+  const rest = groups.filter((g) => g.key !== 'sources')
+  return [...rest, ...sources]
+}
+
+function groupTitleFor(key) {
+  switch (key) {
+    case 'clarification_triage': return 'Clarification & Triage'
+    case 'summary': return 'Résumé clinique'
+    case 'diagnostic': return 'Diagnostic'
+    case 'red_flags': return 'Signes d’alarme'
+    case 'workup': return 'Bilan / Examens'
+    case 'therapeutic_options': return 'Options thérapeutiques'
+    case 'management': return 'Prise en charge & Suivi'
+    case 'counsel_doc': return 'Conseil & Documentation'
+    case 'sources': return 'Sources'
+    default: return 'Autres'
+  }
+}
+
 function sanitizeTitle(raw) {
   let t = (raw || '').trim()
   // Strip wrapping bold markers and trailing colon or arrows
@@ -357,8 +446,16 @@ function normalizeMarkdown(text) {
   t = t.replace(/^\s*__(.+?)__\s*(?:[:：]?\s*(?:[▾▸›»]+)?)?\s*$/gm, (m, p1) => `### ${p1.trim()}`)
   // 1b) Convert plain title lines ending with a colon into headings
   t = t.replace(/^(?!\s*(?:#|>|-|\*|```|\d+\.|\|))\s*(.+?)\s*[:：]\s*$/gm, (m, p1) => `### ${p1.trim()}`)
-  // 1c) Ensure Sources/References have their own heading
-  t = t.replace(/^\s*(sources?|références?)\s*[:：]?\s*$/gim, '### Sources')
+  // 1c) Ensure Sources/References have their own heading; preserve trailing inline links
+  t = t.replace(/^\s*(sources?|références?)\s*[:：]?\s*(.*)$/gim, (m, _kw, rest) => {
+    const tail = (rest || '').trim()
+    return tail ? `### Sources\n${tail}` : '### Sources'
+  })
+  // 1d) Promote list-item Sources into heading as well; preserve trailing inline links
+  t = t.replace(/^\s*[-*+•◦]\s*(sources?|références?)\s*[:：]?\s*(.*)$/gim, (m, _kw, rest) => {
+    const tail = (rest || '').trim()
+    return tail ? `### Sources\n${tail}` : '### Sources'
+  })
   // 2) Replace leading bullets using • or ◦ with proper markdown '- '
   t = t.replace(/^\s*[•◦]\s+/gm, '- ')
   // 3) Split inline bullets: " • item1 • item2" -> new lines with '- '
@@ -375,6 +472,8 @@ function normalizeMarkdown(text) {
     if (url.includes('|')) return url
     return `https://${url}`
   })
+  // 5b) Fix duplicated scheme segments like https://academic.https://...
+  t = t.replace(/https?:\/\/[^\s]*https?:\/\//gi, 'https://')
   // 6) Basic pipe-table helper: if multiple consecutive lines contain '|', insert separator after first
   t = addTableSeparators(t)
   // 6b) Bulletize plain lines under headings: turn consecutive non-empty, non-list lines into '- ' items
