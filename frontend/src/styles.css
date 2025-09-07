@@ -118,11 +118,16 @@ body {
 /* Colored list items removed per request */
 
 .composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--glass-border); background: var(--glass-panel); backdrop-filter: saturate(var(--glass-saturation)) blur(var(--glass-blur)); -webkit-backdrop-filter: saturate(var(--glass-saturation)) blur(var(--glass-blur)); box-shadow: var(--glass-shadow); }
+.mic-btn { min-width: 40px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(11, 18, 32, 0.6); color: var(--text); cursor: pointer; font-size: 16px; }
+.mic-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.mic-btn.recording { color: #fecaca; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.12); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35);} 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);} 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);} }
 .composer input { flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(11, 18, 32, 0.6); color: var(--text); outline: none; backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); }
 .composer input:focus { border-color: #334155; box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.25); }
 .composer button { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--primary); color: white; cursor: pointer; box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35); transition: transform 120ms ease, box-shadow 120ms ease; }
 .composer button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(37, 99, 235, 0.45); }
 .composer button:disabled { opacity: 0.6; cursor: not-allowed; }
+.rec-error { color: #fecaca; font-size: 12px; align-self: center; }
 
 /* Animations */
 @keyframes bubbleIn {

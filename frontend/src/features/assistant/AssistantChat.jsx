@@ -29,6 +29,10 @@ export default function AssistantChat() {
     return false
   })
   const chatInputRef = useRef(null)
+  const recognitionRef = useRef(null)
+  const [canRecord, setCanRecord] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [recError, setRecError] = useState('')
   const messagesEndRef = useRef(null)
 
   // Persist messages to localStorage
@@ -98,7 +102,8 @@ export default function AssistantChat() {
     chatInputRef.current?.focus()
     try {
       const reply = await sendChat(history)
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      const clean = stripFrenchGreeting(reply)
+      setMessages((prev) => [...prev, { role: 'assistant', content: clean }])
     } catch (err) {
       console.error(err)
       setMessages((prev) => [
@@ -123,6 +128,8 @@ export default function AssistantChat() {
       chatInputRef.current?.focus()
     }
   }, [loading, started])
+
+  // Dictaphone disabled; no SpeechRecognition initialization
 
   // Smooth scroll to bottom on new messages
   useEffect(() => {
@@ -218,6 +225,7 @@ export default function AssistantChat() {
         <button type="submit" disabled={loading || !input.trim()}>
           {loading ? 'Envoi…' : 'Envoyer'}
         </button>
+        {recError && <div className="rec-error" role="status">{recError}</div>}
       </form>
     </div>
   )
