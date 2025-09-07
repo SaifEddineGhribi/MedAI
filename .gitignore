@@ -13,3 +13,8 @@ dist/
 .env
 .env.*
 
+
+# Build artifacts
+medai-backend.zip
+frontend/awscliv2.zip
+frontend/aws/

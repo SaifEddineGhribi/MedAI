@@ -62,19 +62,34 @@ def health():
     return {"status": "ok"}
 
 
-# Initialize config and Bedrock client once
+"""
+Avoid creating the Bedrock client at import time so the app can start
+even if AWS credentials/region aren't configured yet. We lazily
+initialize on first use.
+"""
 _CONFIG = load_config()
-bedrock = BedrockChat(config=_CONFIG)
+_bedrock_client: Optional[BedrockChat] = None
+
+
+def _get_bedrock() -> BedrockChat:
+    global _bedrock_client
+    if _bedrock_client is None:
+        _bedrock_client = BedrockChat(config=_CONFIG)
+    return _bedrock_client
 
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
     # Prefer multi-turn history if provided; otherwise fall back to single-turn
-    if req.messages:
-        # Convert Pydantic models to plain dicts
-        history = [{"role": m.role, "content": m.content} for m in req.messages]
-        reply = bedrock.chat(history, system_prompt=_CONFIG.model.system_prompt)
-    else:
-        msg = req.message or ""
-        reply = bedrock.ask(msg, system_prompt=_CONFIG.model.system_prompt)
+    try:
+        br = _get_bedrock()
+        if req.messages:
+            # Convert Pydantic models to plain dicts
+            history = [{"role": m.role, "content": m.content} for m in req.messages]
+            reply = br.chat(history, system_prompt=_CONFIG.model.system_prompt)
+        else:
+            msg = req.message or ""
+            reply = br.ask(msg, system_prompt=_CONFIG.model.system_prompt)
+    except Exception as e:
+        reply = f"Server configuration error: {e}"
     return {"reply": reply}
