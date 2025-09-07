@@ -93,12 +93,21 @@ class BedrockChat:
             "messages": self._to_anthropic_messages(messages),
         }
         if system_prompt:
-            # Append requested instruction at the end of the system prompt
-            extra = "utiliser des emojis pertinents par section"
-            sp = system_prompt
-            if extra.lower() not in (sp or "").lower():
-                # Ensure clean spacing and place the instruction at the very end
-                sp = f"{sp.rstrip()}\n{extra}"
+            sp = system_prompt or ""
+            extras = [
+                "utiliser des emojis pertinents par section",
+                "séparer chaque section par une ligne horizontale '---' pour améliorer la lisibilité",
+                # Ultra‑short mode: cap length and structure
+                "mode synthèse stricte: 4–6 sections maximum, uniquement celles pertinentes au cas; pas besoin de toutes les sections du schéma",
+                "chaque section: 2–3 puces courtes (≤ 10 mots par puce)",
+                "longueur totale ≤ 200–250 mots (sauf si l'utilisateur demande explicitement des détails)",
+                "ne pas inclure de sous‑sections longues, ni tableaux, ni procédures détaillées; garder seulement critères, options, et recommandation",
+            ]
+            low = sp.lower()
+            for extra in extras:
+                if extra.lower() not in low:
+                    sp = f"{sp.rstrip()}\n{extra}"
+                    low += "\n" + extra.lower()
             payload["system"] = sp
 
         try:

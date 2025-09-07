@@ -503,6 +503,8 @@ function normalizeMarkdown(text) {
   t = addTableSeparators(t)
   // 6b) Bulletize plain lines under headings: turn consecutive non-empty, non-list lines into '- ' items
   t = bulletizePlainBlocks(t)
+  // 6c) Insert horizontal rules between sections for readability
+  t = addSectionSeparators(t)
   // 7) Trim excessive blank lines
   t = t.replace(/\n{3,}/g, '\n\n')
   return t
@@ -538,6 +540,40 @@ function addTableSeparators(text) {
   }
   return out.join('\n')
 }
+
+function addSectionSeparators(text) {
+  const lines = text.split(/\r?\n/)
+  const out = []
+  let seenFirstHeading = false
+  let inCode = false
+  const isHr = (s) => /^\s*(?:---|\*\*\*|___)\s*$/.test(s)
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (/^```/.test(line)) {
+      inCode = !inCode
+      out.push(line)
+      continue
+    }
+    const isHeading = /^###\s+/.test(line)
+    if (!inCode && isHeading) {
+      if (seenFirstHeading) {
+        const prev = out.length ? out[out.length - 1] : ''
+        if (!isHr(prev)) {
+          if (prev && prev.trim() !== '') out.push('')
+          out.push('---')
+          out.push('')
+        }
+      }
+      seenFirstHeading = true
+      out.push(line)
+      continue
+    }
+    out.push(line)
+  }
+  return out.join('\n')
+}
+
+// reverted: promoteTitles helper (not needed)
 
 function bulletizePlainBlocks(text) {
   const lines = text.split(/\r?\n/)

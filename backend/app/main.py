@@ -78,6 +78,9 @@ def _get_bedrock() -> BedrockChat:
     return _bedrock_client
 
 
+# Removed server-side shortening: keep model output intact
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
     # Prefer multi-turn history if provided; otherwise fall back to single-turn
@@ -92,6 +95,7 @@ def chat(req: ChatRequest):
             reply = br.ask(msg, system_prompt=_CONFIG.model.system_prompt)
     except Exception as e:
         reply = f"Server configuration error: {e}"
+    # Return model reply without post-processing
     return {"reply": reply}
 
 
