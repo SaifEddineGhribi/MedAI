@@ -44,8 +44,8 @@ def _parse_cors_origins() -> List[str]:
         if parts:
             return parts
     return [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
+        "http://localhost:433",
+        "http://127.0.0.1:433",
     ]
 
 
