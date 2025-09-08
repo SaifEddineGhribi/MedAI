@@ -10,7 +10,7 @@ RUN npm install
 # Copy source (will be overridden by bind mount during dev)
 COPY . .
 
-EXPOSE 433
+EXPOSE 443
 
 ENV CHOKIDAR_USEPOLLING=true \
     WATCHPACK_POLLING=true

@@ -27,7 +27,7 @@ A minimal full-stack scaffold for a medical platform with a left-hand features p
 - Open a new terminal in `frontend/`
 - Install deps: `npm install`
 - Start dev server: `npm run dev`
-- Open: `http://localhost:433`
+- Open: `http://localhost:443`
 
 The UI sends messages to the backend at `http://localhost:8000/api/chat`. To change the backend base URL, set `VITE_API_BASE` in the frontend environment, e.g. `VITE_API_BASE=http://localhost:8000`.
 
@@ -36,7 +36,7 @@ The UI sends messages to the backend at `http://localhost:8000/api/chat`. To cha
 Requires Docker and Docker Compose.
 
 - Build and start both services: `docker compose up --build`
-- Frontend: http://localhost:433 (Vite HMR enabled)
+- Frontend: http://localhost:443 (Vite HMR enabled)
 - Backend: http://localhost:8000 (FastAPI reload enabled)
 
 Code changes in `frontend/` and `backend/` are bind-mounted and trigger hot reload automatically. If you change dependencies (`requirements.txt` or `package.json`), rebuild with `docker compose up --build`.
