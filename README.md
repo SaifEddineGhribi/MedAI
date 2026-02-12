@@ -1,5 +1,4 @@
 # MedAI (FastAPI + React)
-
 A minimal full-stack scaffold for a medical platform with a left-hand features panel and an initial feature: AI Medical Assistant. The assistant is wired end-to-end and currently returns a stubbed response of `hello` to any user input. Swap the stub later with a real LLM call.
 
 ## Project Structure
@@ -53,3 +52,7 @@ Credentials: use standard AWS methods (env vars, `~/.aws/credentials`, or IAM ro
 
 - Add authentication and role-based access for multi-user environments.
 - Flesh out additional features/tabs and route state as needed.
+
+
+Authors : 
+Saif Eddine GHRIBI - Med Amine Ben Salem
